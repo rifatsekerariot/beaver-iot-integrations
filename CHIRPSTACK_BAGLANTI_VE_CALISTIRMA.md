@@ -206,6 +206,21 @@ docker logs beaver-iot 2>&1 | Select-String -Pattern "ChirpStack"
 
 ---
 
+## Bölüm 4: Zero touch (Linux sunucuda tek komut)
+
+**Linux sunucuda** Docker + Git dışında hiçbir şey kurmadan, **tek script** ile Beaver + ChirpStack’i ayağa kaldırmak için:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/rifatsekerariot/beaver-iot-docker/main/scripts/deploy-zero-touch.sh | sudo sh -s -- --tenant-id "default"
+```
+
+Script: Docker (yoksa) kurar, Git (yoksa) kurar, repoları klonlar, ChirpStack JAR’ı build eder, `chirpstack.yaml` ile compose’u başlatır. Tenant ID `--tenant-id` ile verilir. **Sadece Linux** desteklenir.
+
+**Detaylı adımlar ve cloud-init / VM örnekleri:**  
+[beaver-iot-docker](https://github.com/rifatsekerariot/beaver-iot-docker) → **[ZERO_TOUCH_DEPLOY.md](https://github.com/rifatsekerariot/beaver-iot-docker/blob/main/ZERO_TOUCH_DEPLOY.md)**.
+
+---
+
 ## Özet Tablo
 
 | Adım | Ne yapılır? |

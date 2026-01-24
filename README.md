@@ -21,6 +21,7 @@ If you want to develop your own integration, please create a new integration pac
 The **chirpstack-integration** module receives LoRaWAN uplinks and events from ChirpStack v4 via HTTP webhook (no token/password). It runs with Beaver IoT Docker.
 
 - **Bağlantı ve çalıştırma (ChirpStack’e nasıl bağlanır, nasıl ayağa kaldırılır):** [CHIRPSTACK_BAGLANTI_VE_CALISTIRMA.md](CHIRPSTACK_BAGLANTI_VE_CALISTIRMA.md)  
+- **Zero touch (Linux sunucuda tek komutla ayağa kaldırma):** [beaver-iot-docker / ZERO_TOUCH_DEPLOY.md](https://github.com/rifatsekerariot/beaver-iot-docker/blob/main/ZERO_TOUCH_DEPLOY.md)  
 - **Runbook:** [RUNBOOK_CHIRPSTACK_DOCKER.md](RUNBOOK_CHIRPSTACK_DOCKER.md)  
 - **Test plan:** [TEST_PLAN_CHIRPSTACK.md](TEST_PLAN_CHIRPSTACK.md)  
 - **Plan (Docker + repos):** [PLAN_BEAVER_DOCKER_CHIRPSTACK_V4.md](PLAN_BEAVER_DOCKER_CHIRPSTACK_V4.md)
