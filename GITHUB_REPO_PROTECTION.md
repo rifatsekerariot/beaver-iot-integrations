@@ -52,6 +52,7 @@ Böylece `main`’e doğrudan `git push` yerine **Pull Request** zorunlu olur; f
 - **Dependabot alerts**: **Enable** (açık olsun).
 - **Dependabot security updates**: İsterseniz **Enable**.
 - `.github/dependabot.yml` repoda olduğu için Dependabot otomatik çalışır; haftalık PR’lar oluşturur.
+- `dependabot.yml` içinde `labels: - "dependencies"` varsa, repoda **dependencies** label’i tanımlı olmalı (Issues → Labels → New). Yoksa Dependabot PR’larda “labels could not be found” uyarısı yazar.
 
 ### 2.3 Güvenlik
 
