@@ -1,0 +1,119 @@
+# ChirpStack v4 HTTP Integration – Test Planı
+
+## 1. Ön koşullar
+
+- **Maven 3.8+** ve **JDK 17** (veya Docker ile Maven build)
+- **Docker Desktop** çalışır durumda
+- **Beaver** (integrations) ve **beaver-iot-docker** repoları hazır
+
+## 2. Birim / Modül Testleri
+
+### 2.1 ChirpStack integration build
+
+```powershell
+cd c:\Projeler\beaver
+# Yerel Maven:
+mvn clean package -DskipTests -pl integrations/chirpstack-integration -am
+
+# veya Docker ile:
+docker run --rm -v "c:\Projeler\beaver:/workspace" -w /workspace maven:3.8-eclipse-temurin-17-alpine mvn clean package -DskipTests -pl integrations/chirpstack-integration -am
+```
+
+**Beklenen:** `integrations/chirpstack-integration/target/chirpstack-integration-*-shaded.jar` (veya benzeri) oluşur.
+
+### 2.2 Test payload’ları
+
+- `integrations/chirpstack-integration/src/test/resources/chirpstack-up.json`  
+  ChirpStack `up` (uplink) örnek JSON.
+- `chirpstack-join.json`  
+  ChirpStack `join` örnek JSON.
+
+## 3. Docker Ortamı Testleri
+
+### 3.1 Docker build (API + Web + Monolith)
+
+```powershell
+cd c:\Projeler\beaver-iot-docker\build-docker
+# .env oluştur (README’deki gibi)
+docker compose build --no-cache api web monolith
+```
+
+**Beklenen:** `milesight/beaver-iot-api`, `milesight/beaver-iot-web`, `milesight/beaver-iot` (veya `monolith`) image’ları build edilir.
+
+### 3.2 Integrations volume hazırlığı
+
+```powershell
+cd c:\Projeler\beaver-iot-docker
+.\scripts\prepare-chirpstack.ps1
+```
+
+**Beklenen:** `examples/target/chirpstack/integrations/` altında `chirpstack-integration-*.jar` bulunur.
+
+### 3.3 ChirpStack compose ile çalıştırma
+
+```powershell
+cd c:\Projeler\beaver-iot-docker\examples
+# CHIRPSTACK_DEFAULT_TENANT_ID boş bırakılabilir; X-Tenant-Id ile test edilecek.
+docker compose -f chirpstack.yaml up -d
+docker compose -f chirpstack.yaml logs -f monolith
+```
+
+**Beklenen:** Container ayağa kalkar, logda `ChirpStack HTTP integration started` ve benzeri mesajlar görülür.  
+Port **8080** (veya 8080 meşgulse **9080**, `chirpstack.yaml` port map’e göre) üzerinden erişim.
+
+## 4. Webhook Entegrasyon Testleri
+
+### 4.1 Tenant yok → 400
+
+```powershell
+curl -s -o NUL -w "%{http_code}" -X POST "http://localhost:8080/public/integration/chirpstack/webhook?event=up" -H "Content-Type: application/json" -d "{}"
+# Beklenen: 400
+```
+
+### 4.2 Uplink (event=up) + X-Tenant-Id → 200
+
+```powershell
+curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:8080/public/integration/chirpstack/webhook?event=up" `
+  -H "Content-Type: application/json" `
+  -H "X-Tenant-Id: default" `
+  -d "@c:\Projeler\beaver\integrations\chirpstack-integration\src\test\resources\chirpstack-up.json"
+```
+
+**Beklenen:** HTTP 200, body `ok`. Cihaz yoksa logda “device not found” benzeri mesaj; varsa `online` ve uplink log’u.
+
+### 4.3 Join (event=join) + X-Tenant-Id → 200
+
+```powershell
+curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:8080/public/integration/chirpstack/webhook?event=join" `
+  -H "Content-Type: application/json" `
+  -H "X-Tenant-Id: default" `
+  -d "@c:\Projeler\beaver\integrations\chirpstack-integration\src\test\resources\chirpstack-join.json"
+```
+
+**Beklenen:** HTTP 200, body `ok`. Logda “ChirpStack join: devEui=...” görülür.
+
+### 4.4 Otomatik smoke test
+
+```powershell
+cd c:\Projeler\beaver-iot-docker\scripts
+.\test-webhook.ps1 -BaseUrl "http://localhost:9080" -TenantId "default"
+# 8080 kullanıyorsan: -BaseUrl "http://localhost:8080"
+```
+
+## 5. Log Kontrolü
+
+- **Beaver API / monolith log’ları:**  
+  `ChirpStack webhook`, `ChirpStack uplink`, `ChirpStack join`, `device not found`, `tenant not configured` vb. mesajlar.
+- **Hata:**  
+  `ChirpStack webhook error`, stack trace varsa controller/service tarafında incelenmeli.
+
+## 6. Kısa Kontrol Listesi
+
+| Adım | Beklenen |
+|------|----------|
+| Maven build (chirpstack-integration) | JAR oluşur |
+| Docker build (api, web, monolith) | Image’lar oluşur |
+| prepare-chirpstack | JAR examples target’a kopyalanır |
+| chirpstack.yaml up | Container ayakta, 8080 veya 9080 açık |
+| POST webhook, tenant yok | 400 |
+| POST webhook, X-Tenant-Id + up/join | 200, log’da ilgili mesajlar |
