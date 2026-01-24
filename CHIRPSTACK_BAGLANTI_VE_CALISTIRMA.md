@@ -75,6 +75,8 @@ cd c:\Projeler\beaver-iot-docker\examples
 docker compose -f chirpstack.yaml up -d
 ```
 
+**Widget entegrasyonu (Alarm / Map / Device List):** Bu üç widget “Add widget” listesinde görünsün ve **local** `beaver-iot-web` ile Docker çalışsın isterseniz, tek komutla hazırlık + build + compose için [`ENTEGRASYON_WIDGET_DOCKER.md`](./ENTEGRASYON_WIDGET_DOCKER.md) ve `.\scripts\run-with-local-web.ps1` kullanın.
+
 **Veya** JAR + compose’u tek seferde:
 
 ```powershell
