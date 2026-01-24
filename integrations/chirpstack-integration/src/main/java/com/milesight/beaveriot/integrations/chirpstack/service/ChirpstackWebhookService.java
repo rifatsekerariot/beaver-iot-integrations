@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.milesight.beaveriot.context.api.DeviceServiceProvider;
 import com.milesight.beaveriot.context.api.DeviceStatusServiceProvider;
+import com.milesight.beaveriot.context.api.EntityValueServiceProvider;
+import com.milesight.beaveriot.context.integration.model.ExchangePayload;
+import com.milesight.beaveriot.integrations.chirpstack.config.ChirpstackTelemetryMapping;
 import com.milesight.beaveriot.integrations.chirpstack.constant.ChirpstackConstants;
 import com.milesight.beaveriot.integrations.chirpstack.model.JoinEvent;
 import com.milesight.beaveriot.integrations.chirpstack.model.StatusEvent;
@@ -11,6 +14,13 @@ import com.milesight.beaveriot.integrations.chirpstack.model.UplinkEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Handles ChirpStack HTTP integration events. No token or password validation.
@@ -23,6 +33,7 @@ public class ChirpstackWebhookService {
     private final ObjectMapper objectMapper;
     private final DeviceServiceProvider deviceServiceProvider;
     private final DeviceStatusServiceProvider deviceStatusServiceProvider;
+    private final EntityValueServiceProvider entityValueServiceProvider;
 
     public void handle(String event, JsonNode body) {
         if (event == null || event.isBlank()) {
@@ -70,6 +81,77 @@ public class ChirpstackWebhookService {
             snr = rx.getSnr();
         }
         log.debug("ChirpStack uplink: devEui={}, fPort={}, rssi={}, snr={}", devEui, fPort, rssi, snr);
+
+        JsonNode decoded = evt.getObject();
+        if (decoded == null && evt.getData() != null && !evt.getData().isBlank()) {
+            decoded = tryDecodeDataAsJson(evt.getData());
+        }
+        if (decoded != null && decoded.isObject()) {
+            Map<String, Object> toSave = mapSensorPayloadToEntityValues(decoded);
+            if (!toSave.isEmpty()) {
+                String deviceKey = device.getKey();
+                Map<String, Object> payload = new HashMap<>();
+                for (Map.Entry<String, Object> e : toSave.entrySet()) {
+                    payload.put(deviceKey + "." + e.getKey(), e.getValue());
+                }
+                entityValueServiceProvider.saveValuesAndPublishAsync(ExchangePayload.create(payload));
+                log.debug("ChirpStack uplink: saved sensor values devEui={} keys={}", devEui, toSave.keySet());
+            }
+        }
+    }
+
+    private JsonNode tryDecodeDataAsJson(String base64) {
+        try {
+            byte[] bytes = Base64.getDecoder().decode(base64.trim());
+            if (bytes == null || bytes.length == 0) return null;
+            String json = new String(bytes, StandardCharsets.UTF_8);
+            return objectMapper.readTree(json);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Map decoded payload keys to entity identifiers and numeric values.
+     * Uses {@link ChirpstackTelemetryMapping#ALL}; supports many telemetry types
+     * (temperature, humidity, co2, pressure, battery, pm25, pm10, luminosity, etc.)
+     * and multiple key aliases per type. Case-insensitive key matching.
+     * Handles flat numbers or {"value": number} nested objects.
+     */
+    private Map<String, Object> mapSensorPayloadToEntityValues(JsonNode obj) {
+        Map<String, Object> out = new HashMap<>();
+        if (obj == null || !obj.isObject()) return out;
+        for (ChirpstackTelemetryMapping.Spec spec : ChirpstackTelemetryMapping.ALL) {
+            Double v = extractNumberCaseInsensitive(obj, spec.getPayloadKeyAliases());
+            if (v != null) out.put(spec.getEntityId(), v);
+        }
+        return out;
+    }
+
+    private Double extractNumberCaseInsensitive(JsonNode obj, List<String> aliases) {
+        Iterator<String> it = obj.fieldNames();
+        while (it.hasNext()) {
+            String key = it.next();
+            String keyLower = key.toLowerCase();
+            for (String a : aliases) {
+                if (a != null && keyLower.equals(a.toLowerCase())) {
+                    Double v = extractNumberFromNode(obj.get(key));
+                    if (v != null) return v;
+                    break;
+                }
+            }
+        }
+        return null;
+    }
+
+    private Double extractNumberFromNode(JsonNode n) {
+        if (n == null) return null;
+        if (n.isNumber()) return n.asDouble();
+        if (n.isObject() && n.has("value")) {
+            JsonNode v = n.get("value");
+            if (v != null && v.isNumber()) return v.asDouble();
+        }
+        return null;
     }
 
     private void handleJoin(JsonNode body) {

@@ -187,7 +187,9 @@ Webhook’a **join** / **uplink** gönderen cihazların Beaver’da görünmesi 
 
 Bu cihaz kaydedildikten sonra ChirpStack **uplink** gönderdiğinde webhook cihazı bulur ve **online** işaretler. DevEUI eşleşmezse webhook cihazı atlar (`device not found` log’da görülür).
 
-**Not:** Önce cihazı Beaver’da ekleyin, sonra ChirpStack’te join/uplink gelsin. Otomatik cihaz oluşturma şu an yok.
+**Telemetri (Entity Data):** Yeni eklenen ChirpStack cihazları için çok sayıda property tanımlıdır: **Temperature**, **Humidity**, **CO2**, **Pressure**, **Battery**, **PM2.5**, **PM10**, **Luminosity**, **Voltage**, **RSSI**, **SNR**. (Eski cihazlarda yoktur; gerekirse silip yeniden ekleyin.) Değerlerin **Device → Entity Data → PROPERTY**'de görünmesi için uplink'ta decode edilmiş veri gerekir: ChirpStack **payload codec** çıktısı `object` (örn. `{"temperature": 23.5, "humidity": 65, "co2": 412}`) veya `data` = bu JSON'un base64'ü. Desteklenen anahtarlar ve eş anlamlılar: `temperature`/`temp`, `humidity`/`hum`/`rh`, `co2`/`carbonDioxide`, `pressure`/`barometricPressure`/`press`, `battery`/`batteryLevel`/`bat`, `pm25`/`pm2.5`, `pm10`, `luminosity`/`light`/`lux`/`illuminance`, `voltage`/`volt`, `rssi`, `snr`. Anahtar eşlemesi büyük/küçük harf duyarsızdır.
+
+**Not:** Önce cihazı Beaver'da ekleyin, sonra ChirpStack'te join/uplink gelsin. Otomatik cihaz oluşturma şu an yok.
 
 **Integration → ChirpStack HTTP “No Data”:** Bu entegrasyonda bağlantı ayarı yok (yalnızca webhook); Settings/Service sekmesinde “No Data” normaldir. Cihaz ekleme **Device** menüsünden yapılır.
 

@@ -123,6 +123,28 @@ cd c:\Projeler\beaver-iot-docker\scripts
 - **Form açılmıyor / 400:** Handler `CALL_SERVICE` ile dinliyor mu kontrol et; JAR yeniden build + container restart.
 - **Integration → ChirpStack HTTP "No Data":** Bağlantı ayarı yok; cihaz ekleme Device menüsünden yapılır.
 
+### 5.4 Sıcaklık / nem (Entity Data)
+
+Cihaz eklendikten sonra **Temperature** ve **Humidity** Entity Data’da görünür. Değerler, uplink payload’ında `object` (veya `data` base64 JSON) ile gelmelidir.
+
+1. Cihazı **5.2** ile ekleyin (DevEUI = `0101010101010101` veya test cihazınız).
+2. Uplink’i `object` ile gönderin:
+
+```powershell
+curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:9080/public/integration/chirpstack/webhook?event=up" `
+  -H "Content-Type: application/json" `
+  -H "X-Tenant-Id: default" `
+  -d "@c:\Projeler\beaver\integrations\chirpstack-integration\src\test\resources\chirpstack-up-with-object.json"
+```
+
+3. **Beklenen:** HTTP 200. Beaver UI → **Device** → ilgili cihaz → **Entity Data** → **PROPERTY**: **Temperature**, **Humidity** ve son değerler (örn. 23.5 °C, 65 %) görünür.
+
+**ChirpStack tarafı:** Payload codec çıktısı `object` olarak gelmeli (örn. `{"temperature": 23.5, "humidity": 65}`). Alternatif: `data` alanı, bu JSON’un base64’ü olabilir.
+
+### 5.5 Çoklu telemetri
+
+Desteklenen tipler: **Temperature**, **Humidity**, **CO2**, **Pressure**, **Battery**, **PM2.5**, **PM10**, **Luminosity**, **Voltage**, **RSSI**, **SNR**. Her biri için birden fazla payload anahtarı ve büyük/küçük harf duyarsız eşleme. Test: `chirpstack-up-multi-telemetry.json` ile aynı curl komutunu çalıştırın (`-d "@...chirpstack-up-multi-telemetry.json"`).
+
 ## 6. Log Kontrolü
 
 - **Beaver API / monolith log'ları:**  
@@ -142,3 +164,4 @@ cd c:\Projeler\beaver-iot-docker\scripts
 | POST webhook, X-Tenant-Id + up/join | 200, log'da ilgili mesajlar |
 | Device → Add → ChirpStack HTTP | Form (Device Name, DevEUI) açılır |
 | Form doldurup Confirm | 200, cihaz oluşur; api/v1/device 400 dönmez |
+| Uplink + object (temp/hum) | 200; Entity Data’da Temperature, Humidity güncellenir |
