@@ -129,6 +129,14 @@ nb-configuration.xml
 .code-workspace
 
 ##############################
+## Secrets / tokens
+##############################
+gittoken.txt
+*.token
+.env.local
+.env.*.local
+
+##############################
 ## OS X
 ##############################
 .DS_Store
