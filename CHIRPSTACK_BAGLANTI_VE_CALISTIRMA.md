@@ -174,6 +174,23 @@ Bundan sonra ChirpStack’ten gelen tüm webhook istekleri bu tenant’a işleni
 
 ---
 
+### Adım 2.4: Webhook’tan gelen cihazları Beaver’da ekleme
+
+Webhook’a **join** / **uplink** gönderen cihazların Beaver’da görünmesi için **önce cihazı eklemeniz** gerekir:
+
+1. **Beaver UI** → **Device** → **+ Add**.
+2. **Integration** olarak **ChirpStack HTTP** seçin → **Confirm**.
+3. Açılan formda:
+   - **Device Name:** İstediğiniz ad (örn. `LoRa-01`).
+   - **External Device ID (DevEUI):** ChirpStack’teki cihazın **DevEUI**’si (16 hex karakter, örn. `0101010101010101`). Webhook payload’ındaki `deviceInfo.devEui` ile **birebir aynı** olmalı.
+4. **Confirm** ile kaydedin.
+
+Bu cihaz kaydedildikten sonra ChirpStack **uplink** gönderdiğinde webhook cihazı bulur ve **online** işaretler. DevEUI eşleşmezse webhook cihazı atlar (`device not found` log’da görülür).
+
+**Not:** Önce cihazı Beaver’da ekleyin, sonra ChirpStack’te join/uplink gelsin. Otomatik cihaz oluşturma şu an yok.
+
+---
+
 ## Bölüm 3: Bağlantıyı Doğrulama
 
 ### 3.1 Webhook test script’i (PowerShell)
