@@ -5,6 +5,7 @@ import com.milesight.beaveriot.integrations.chirpstack.constant.ChirpstackConsta
 import com.milesight.beaveriot.integrations.chirpstack.entity.ChirpstackIntegrationEntities;
 import com.milesight.beaveriot.context.integration.model.Device;
 import com.milesight.beaveriot.context.integration.model.DeviceBuilder;
+import com.milesight.beaveriot.context.integration.model.event.ExchangeEvent;
 import com.milesight.beaveriot.eventbus.annotations.EventSubscribe;
 import com.milesight.beaveriot.eventbus.api.Event;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class ChirpstackDeviceService {
 
     private final DeviceServiceProvider deviceServiceProvider;
 
-    @EventSubscribe(payloadKeyExpression = ChirpstackConstants.INTEGRATION_ID + ".integration.add_device.*")
+    @EventSubscribe(payloadKeyExpression = ChirpstackConstants.INTEGRATION_ID + ".integration.add_device.*", eventType = ExchangeEvent.EventType.CALL_SERVICE)
     public void onAddDevice(Event<ChirpstackIntegrationEntities.AddDevice> event) {
         ChirpstackIntegrationEntities.AddDevice addDevice = event.getPayload();
         String deviceName = addDevice.getAddDeviceName();
@@ -42,7 +43,7 @@ public class ChirpstackDeviceService {
         log.info("ChirpStack add_device: created device name={} devEui={}", device.getName(), devEui);
     }
 
-    @EventSubscribe(payloadKeyExpression = ChirpstackConstants.INTEGRATION_ID + ".integration.delete_device")
+    @EventSubscribe(payloadKeyExpression = ChirpstackConstants.INTEGRATION_ID + ".integration.delete_device", eventType = ExchangeEvent.EventType.CALL_SERVICE)
     public void onDeleteDevice(Event<ChirpstackIntegrationEntities.DeleteDevice> event) {
         Device device = event.getPayload().getDeletedDevice();
         if (device != null) {

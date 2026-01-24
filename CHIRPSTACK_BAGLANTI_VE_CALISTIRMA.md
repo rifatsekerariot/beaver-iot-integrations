@@ -189,6 +189,8 @@ Bu cihaz kaydedildikten sonra ChirpStack **uplink** gönderdiğinde webhook ciha
 
 **Not:** Önce cihazı Beaver’da ekleyin, sonra ChirpStack’te join/uplink gelsin. Otomatik cihaz oluşturma şu an yok.
 
+**Integration → ChirpStack HTTP “No Data”:** Bu entegrasyonda bağlantı ayarı yok (yalnızca webhook); Settings/Service sekmesinde “No Data” normaldir. Cihaz ekleme **Device** menüsünden yapılır.
+
 ---
 
 ## Bölüm 3: Bağlantıyı Doğrulama

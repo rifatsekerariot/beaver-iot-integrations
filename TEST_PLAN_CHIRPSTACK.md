@@ -21,7 +21,7 @@ docker run --rm -v "c:\Projeler\beaver:/workspace" -w /workspace maven:3.8-eclip
 
 **Beklenen:** `integrations/chirpstack-integration/target/chirpstack-integration-*-shaded.jar` (veya benzeri) oluşur.
 
-### 2.2 Test payload’ları
+### 2.2 Test payload'ları
 
 - `integrations/chirpstack-integration/src/test/resources/chirpstack-up.json`  
   ChirpStack `up` (uplink) örnek JSON.
@@ -34,11 +34,11 @@ docker run --rm -v "c:\Projeler\beaver:/workspace" -w /workspace maven:3.8-eclip
 
 ```powershell
 cd c:\Projeler\beaver-iot-docker\build-docker
-# .env oluştur (README’deki gibi)
+# .env oluştur (README'deki gibi)
 docker compose build --no-cache api web monolith
 ```
 
-**Beklenen:** `milesight/beaver-iot-api`, `milesight/beaver-iot-web`, `milesight/beaver-iot` (veya `monolith`) image’ları build edilir.
+**Beklenen:** `milesight/beaver-iot-api`, `milesight/beaver-iot-web`, `milesight/beaver-iot` (veya `monolith`) image'ları build edilir.
 
 ### 3.2 Integrations volume hazırlığı
 
@@ -59,7 +59,7 @@ docker compose -f chirpstack.yaml logs -f monolith
 ```
 
 **Beklenen:** Container ayağa kalkar, logda `ChirpStack HTTP integration started` ve benzeri mesajlar görülür.  
-Port **8080** (veya 8080 meşgulse **9080**, `chirpstack.yaml` port map’e göre) üzerinden erişim.
+Port **8080** (veya 8080 meşgulse **9080**, `chirpstack.yaml` port map'e göre) üzerinden erişim.
 
 ## 4. Webhook Entegrasyon Testleri
 
@@ -79,7 +79,7 @@ curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:8080/public/integrati
   -d "@c:\Projeler\beaver\integrations\chirpstack-integration\src\test\resources\chirpstack-up.json"
 ```
 
-**Beklenen:** HTTP 200, body `ok`. Cihaz yoksa logda “device not found” benzeri mesaj; varsa `online` ve uplink log’u.
+**Beklenen:** HTTP 200, body `ok`. Cihaz yoksa logda "device not found" benzeri mesaj; varsa `online` ve uplink log'u.
 
 ### 4.3 Join (event=join) + X-Tenant-Id → 200
 
@@ -90,7 +90,7 @@ curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:8080/public/integrati
   -d "@c:\Projeler\beaver\integrations\chirpstack-integration\src\test\resources\chirpstack-join.json"
 ```
 
-**Beklenen:** HTTP 200, body `ok`. Logda “ChirpStack join: devEui=...” görülür.
+**Beklenen:** HTTP 200, body `ok`. Logda "ChirpStack join: devEui=..." görülür.
 
 ### 4.4 Otomatik smoke test
 
@@ -100,20 +100,45 @@ cd c:\Projeler\beaver-iot-docker\scripts
 # 8080 kullanıyorsan: -BaseUrl "http://localhost:8080"
 ```
 
-## 5. Log Kontrolü
+## 5. Cihaz ekleme (UI)
 
-- **Beaver API / monolith log’ları:**  
-  `ChirpStack webhook`, `ChirpStack uplink`, `ChirpStack join`, `device not found`, `tenant not configured` vb. mesajlar.
+**Amaç:** Device → Add → ChirpStack HTTP ile form görünmeli, DevEUI girilip Confirm'da 200 dönmeli, cihaz oluşmalı.
+
+### 5.1 Ön koşul
+
+- `chirpstack.yaml` ile stack ayakta; `CHIRPSTACK_DEFAULT_TENANT_ID` veya login tenant'ı belli.
+- Tarayıcıda `http://localhost:9080` (veya 8080) → Beaver UI'a giriş yapılmış.
+
+### 5.2 Adımlar
+
+1. **Device** → **+ Add**.
+2. **Integration** dropdown'dan **ChirpStack HTTP** seç → **Confirm**.
+3. **Beklenen:** İkinci modal/form açılır: **Device Name** + **External Device ID (DevEUI)**.
+4. Device Name: örn. `LoRa-01`; DevEUI: örn. `0101010101010101` (16 hex) → **Confirm**.
+5. **Beklenen:** HTTP 200, `api/v1/device` 400 dönmez; cihaz listede görünür.
+6. (Opsiyonel) Aynı DevEUI ile webhook `event=up` gönder → cihaz **online** olmalı.
+
+### 5.3 Sorun giderme
+
+- **Form açılmıyor / 400:** Handler `CALL_SERVICE` ile dinliyor mu kontrol et; JAR yeniden build + container restart.
+- **Integration → ChirpStack HTTP "No Data":** Bağlantı ayarı yok; cihaz ekleme Device menüsünden yapılır.
+
+## 6. Log Kontrolü
+
+- **Beaver API / monolith log'ları:**  
+  `ChirpStack webhook`, `ChirpStack uplink`, `ChirpStack join`, `ChirpStack add_device: created device`, `device not found`, `tenant not configured` vb. mesajlar.
 - **Hata:**  
   `ChirpStack webhook error`, stack trace varsa controller/service tarafında incelenmeli.
 
-## 6. Kısa Kontrol Listesi
+## 7. Kısa Kontrol Listesi
 
 | Adım | Beklenen |
 |------|----------|
 | Maven build (chirpstack-integration) | JAR oluşur |
-| Docker build (api, web, monolith) | Image’lar oluşur |
-| prepare-chirpstack | JAR examples target’a kopyalanır |
-| chirpstack.yaml up | Container ayakta, 8080 veya 9080 açık |
+| Docker build (api, web, monolith) | Image'lar oluşur |
+| prepare-chirpstack | JAR examples target'a kopyalanır |
+| chirpstack.yaml up | Container ayakta, 9080 (veya 8080) açık |
 | POST webhook, tenant yok | 400 |
-| POST webhook, X-Tenant-Id + up/join | 200, log’da ilgili mesajlar |
+| POST webhook, X-Tenant-Id + up/join | 200, log'da ilgili mesajlar |
+| Device → Add → ChirpStack HTTP | Form (Device Name, DevEUI) açılır |
+| Form doldurup Confirm | 200, cihaz oluşur; api/v1/device 400 dönmez |
