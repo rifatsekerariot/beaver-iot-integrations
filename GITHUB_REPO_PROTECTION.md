@@ -15,7 +15,19 @@ Bu dokümanda **rifatsekerariot** Beaver IoT repolarını korumak için önerile
 
 ## 2. GitHub’da uygulamanız gerekenler
 
-### 2.1 Branch protection (`main`)
+### 2.0 Script ile uygulama (önerilen)
+
+**GITHUB_TOKEN** (Fine-grained PAT, bu repolarda **Administration** = Read and write) ile branch protection API üzerinden uygulanabilir:
+
+```powershell
+cd c:\Projeler\beaver\scripts
+$env:GITHUB_TOKEN = "ghp_..."   # veya fine-grained token
+.\apply-github-protection.ps1
+```
+
+Token: **GitHub → Settings → Developer settings → Personal access tokens** (Fine-grained) → ilgili repolara **Administration** yetkisi verin.
+
+### 2.1 Branch protection (`main`) — UI ile
 
 Her korumak istediğiniz repo için:
 
