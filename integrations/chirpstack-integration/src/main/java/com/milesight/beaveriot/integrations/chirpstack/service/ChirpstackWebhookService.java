@@ -190,9 +190,41 @@ public class ChirpstackWebhookService {
             log.error("ChirpStack webhook: failed to parse status event", e);
             return;
         }
-        if (evt != null && evt.getDeviceInfo() != null) {
-            log.debug("ChirpStack status: devEui={}, margin={}, batteryLevel={}",
-                    evt.getDeviceInfo().getDevEui(), evt.getMargin(), evt.getBatteryLevel());
+        if (evt == null || evt.getDeviceInfo() == null) {
+            log.warn("ChirpStack webhook: status missing deviceInfo");
+            return;
+        }
+        String devEui = evt.getDeviceInfo().getDevEui();
+        if (devEui == null || devEui.isBlank()) {
+            log.warn("ChirpStack webhook: status missing devEui");
+            return;
+        }
+        var device = deviceServiceProvider.findByIdentifier(devEui, ChirpstackConstants.INTEGRATION_ID);
+        if (device == null) {
+            log.debug("ChirpStack webhook: device not found for status devEui={}, skip", devEui);
+            return;
+        }
+        deviceStatusServiceProvider.online(device);
+
+        Map<String, Object> toSave = new HashMap<>();
+        if (evt.getBatteryLevel() != null && !Boolean.TRUE.equals(evt.getBatteryLevelUnavailable())) {
+            toSave.put("battery", evt.getBatteryLevel().doubleValue());
+        }
+        if (evt.getMargin() != null) {
+            toSave.put("margin", evt.getMargin().doubleValue());
+        }
+
+        if (!toSave.isEmpty()) {
+            String deviceKey = device.getKey();
+            Map<String, Object> payload = new HashMap<>();
+            for (Map.Entry<String, Object> e : toSave.entrySet()) {
+                payload.put(deviceKey + "." + e.getKey(), e.getValue());
+            }
+            entityValueServiceProvider.saveValuesAndPublishAsync(ExchangePayload.create(payload));
+            log.debug("ChirpStack status: saved entity values devEui={} keys={}", devEui, toSave.keySet());
+        } else {
+            log.debug("ChirpStack status: devEui={}, margin={}, batteryLevel={} (no values to save)",
+                    devEui, evt.getMargin(), evt.getBatteryLevel());
         }
     }
 }

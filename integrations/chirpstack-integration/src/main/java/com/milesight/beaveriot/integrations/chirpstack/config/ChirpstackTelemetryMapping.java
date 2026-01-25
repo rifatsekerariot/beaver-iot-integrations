@@ -40,6 +40,7 @@ public final class ChirpstackTelemetryMapping {
             Spec.of("luminosity", "Luminosity", "lux", "luminosity", "light", "lux", "illuminance"),
             Spec.of("voltage", "Voltage", "V", "voltage", "volt", "v"),
             Spec.of("rssi", "RSSI", "dBm", "rssi"),
-            Spec.of("snr", "SNR", "dB", "snr")
+            Spec.of("snr", "SNR", "dB", "snr"),
+            Spec.of("margin", "Margin", "dB", "margin")
     );
 }

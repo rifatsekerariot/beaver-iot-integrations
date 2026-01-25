@@ -92,7 +92,20 @@ curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:8080/public/integrati
 
 **Beklenen:** HTTP 200, body `ok`. Logda "ChirpStack join: devEui=..." görülür.
 
-### 4.4 Otomatik smoke test
+### 4.4 Status (event=status) + X-Tenant-Id → 200, battery/margin entity güncellemesi
+
+ChirpStack `event=status` ile `batteryLevel` ve `margin` gönderir. Bu veriler parse edilip ilgili cihazın **battery** ve **margin** entity'lerine yazılır; widget'lar (örn. Battery, Signal Quality) bu entity'leri kullanabilir.
+
+```powershell
+curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:9080/public/integration/chirpstack/webhook?event=status" `
+  -H "Content-Type: application/json" `
+  -H "X-Tenant-Id: default" `
+  -d "@c:\Projeler\beaver\integrations\chirpstack-integration\src\test\resources\chirpstack-status.json"
+```
+
+**Beklenen:** HTTP 200, body `ok`. Cihaz yoksa logda "device not found"; varsa logda "ChirpStack status: saved entity values devEui=... keys=[battery, margin]". UI → Device → ilgili cihaz → Entity Data'da **Battery** (örn. 88.3) ve **Margin** (örn. 10) güncellenir.
+
+### 4.5 Otomatik smoke test
 
 ```powershell
 cd c:\Projeler\beaver-iot-docker\scripts
@@ -143,7 +156,14 @@ curl -s -w "\nHTTP %{http_code}" -X POST "http://localhost:9080/public/integrati
 
 ### 5.5 Çoklu telemetri
 
-Desteklenen tipler: **Temperature**, **Humidity**, **CO2**, **Pressure**, **Battery**, **PM2.5**, **PM10**, **Luminosity**, **Voltage**, **RSSI**, **SNR**. Her biri için birden fazla payload anahtarı ve büyük/küçük harf duyarsız eşleme. Test: `chirpstack-up-multi-telemetry.json` ile aynı curl komutunu çalıştırın (`-d "@...chirpstack-up-multi-telemetry.json"`).
+Desteklenen tipler: **Temperature**, **Humidity**, **CO2**, **Pressure**, **Battery**, **PM2.5**, **PM10**, **Luminosity**, **Voltage**, **RSSI**, **SNR**, **Margin**. Her biri için birden fazla payload anahtarı ve büyük/küçük harf duyarsız eşleme. Test: `chirpstack-up-multi-telemetry.json` ile aynı curl komutunu çalıştırın (`-d "@...chirpstack-up-multi-telemetry.json"`).
+
+### 5.6 Status event → Battery / Margin (widget telemetrisi)
+
+- **Uplink (`event=up`):** `object` + `rxInfo` → temperature, humidity, rssi, snr vb. entity'lere yazılır.
+- **Status (`event=status`):** `batteryLevel` → **battery**, `margin` → **margin** entity'lerine yazılır. `batteryLevelUnavailable: true` ise battery kaydedilmez.
+
+Cihaz ekledikten sonra status event gönderin (`chirpstack-status.json`). Dashboard'da **Battery** veya **Signal Quality** (margin) widget'ı ekleyip ilgili entity'yi seçin; ChirpStack'ten status geldikçe değerler güncellenir.
 
 ## 6. Log Kontrolü
 
@@ -161,7 +181,8 @@ Desteklenen tipler: **Temperature**, **Humidity**, **CO2**, **Pressure**, **Batt
 | prepare-chirpstack | JAR examples target'a kopyalanır |
 | chirpstack.yaml up | Container ayakta, 9080 (veya 8080) açık |
 | POST webhook, tenant yok | 400 |
-| POST webhook, X-Tenant-Id + up/join | 200, log'da ilgili mesajlar |
+| POST webhook, X-Tenant-Id + up/join/status | 200, log'da ilgili mesajlar |
 | Device → Add → ChirpStack HTTP | Form (Device Name, DevEUI) açılır |
 | Form doldurup Confirm | 200, cihaz oluşur; api/v1/device 400 dönmez |
 | Uplink + object (temp/hum) | 200; Entity Data’da Temperature, Humidity güncellenir |
+| Status + battery/margin | 200; Entity Data'da Battery, Margin güncellenir; widget'larda kullanılabilir |
