@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.milesight.beaveriot.context.api.DeviceServiceProvider;
 import com.milesight.beaveriot.context.api.DeviceStatusServiceProvider;
 import com.milesight.beaveriot.context.api.EntityValueServiceProvider;
+import com.milesight.beaveriot.context.integration.model.Device;
 import com.milesight.beaveriot.context.integration.model.ExchangePayload;
+import com.milesight.beaveriot.integrations.chirpstack.config.ChirpstackSensorModelMapping;
 import com.milesight.beaveriot.integrations.chirpstack.config.ChirpstackTelemetryMapping;
 import com.milesight.beaveriot.integrations.chirpstack.constant.ChirpstackConstants;
 import com.milesight.beaveriot.integrations.chirpstack.model.JoinEvent;
@@ -21,6 +23,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Handles ChirpStack HTTP integration events. No token or password validation.
@@ -169,6 +173,20 @@ public class ChirpstackWebhookService {
         return null;
     }
 
+    /**
+     * When device has sensorModel in additional, retain only entity keys allowed for that model.
+     * Modifies toSave in place by removing disallowed keys.
+     */
+    private void filterToSaveBySensorModel(Device device, Map<String, Object> toSave) {
+        if (device.getAdditional() == null) return;
+        Object sm = device.getAdditional().get(ChirpstackConstants.DEVICE_ADDITIONAL_SENSOR_MODEL);
+        if (!(sm instanceof String) || ((String) sm).isBlank()) return;
+        String sensorModel = ((String) sm).trim();
+        if (!ChirpstackSensorModelMapping.hasModel(sensorModel)) return;
+        Set<String> allowed = ChirpstackSensorModelMapping.getEntityIdsForModel(sensorModel).stream().collect(Collectors.toSet());
+        toSave.keySet().retainAll(allowed);
+    }
+
     private void handleJoin(JsonNode body) {
         JoinEvent evt;
         try {
@@ -213,6 +231,8 @@ public class ChirpstackWebhookService {
         if (evt.getMargin() != null) {
             toSave.put("margin", evt.getMargin().doubleValue());
         }
+
+        filterToSaveBySensorModel(device, toSave);
 
         if (!toSave.isEmpty()) {
             String deviceKey = device.getKey();

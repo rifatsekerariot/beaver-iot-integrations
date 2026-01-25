@@ -34,6 +34,10 @@ public class ChirpstackIntegrationEntities extends ExchangePayload {
         /** LoRaWAN DevEUI (16 hex chars). Must match ChirpStack webhook payload. */
         @Entity(name = "External Device ID (DevEUI)", identifier = "dev_eui", attributes = @Attribute(maxLength = 32))
         private String devEui;
+
+        /** Optional sensor model (e.g. am102, em500-udl, vs121). When set, only that model's telemetry entities are created. */
+        @Entity(name = "Sensor model", identifier = "sensor_model", attributes = @Attribute(optional = true, maxLength = 64))
+        private String sensorModel;
     }
 
     @Data

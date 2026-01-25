@@ -15,4 +15,7 @@ public final class ChirpstackConstants {
     public static final String HEADER_TENANT_ID = "X-Tenant-Id";
 
     public static final String QUERY_EVENT = "event";
+
+    /** Device additional key for selected sensor model (e.g. am102, em500-udl). */
+    public static final String DEVICE_ADDITIONAL_SENSOR_MODEL = "sensorModel";
 }

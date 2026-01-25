@@ -9,6 +9,7 @@ import com.milesight.beaveriot.context.integration.model.DeviceBuilder;
 import com.milesight.beaveriot.context.integration.model.Entity;
 import com.milesight.beaveriot.context.integration.model.EntityBuilder;
 import com.milesight.beaveriot.context.integration.model.event.ExchangeEvent;
+import com.milesight.beaveriot.integrations.chirpstack.config.ChirpstackSensorModelMapping;
 import com.milesight.beaveriot.integrations.chirpstack.config.ChirpstackTelemetryMapping;
 import com.milesight.beaveriot.integrations.chirpstack.constant.ChirpstackConstants;
 import com.milesight.beaveriot.integrations.chirpstack.entity.ChirpstackIntegrationEntities;
@@ -21,6 +22,9 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Handles add/delete device from Beaver UI (Device → Add → ChirpStack HTTP).
@@ -44,8 +48,16 @@ public class ChirpstackDeviceService {
             throw new IllegalArgumentException("External Device ID (DevEUI) is required");
         }
         devEui = devEui.trim();
+        String sensorModel = StringUtils.hasText(addDevice.getSensorModel()) ? addDevice.getSensorModel().trim() : null;
+        Set<String> allowedEntityIds = null;
+        if (sensorModel != null && ChirpstackSensorModelMapping.hasModel(sensorModel)) {
+            allowedEntityIds = ChirpstackSensorModelMapping.getEntityIdsForModel(sensorModel).stream().collect(Collectors.toSet());
+        }
         List<Entity> entities = new ArrayList<>();
         for (ChirpstackTelemetryMapping.Spec spec : ChirpstackTelemetryMapping.ALL) {
+            if (allowedEntityIds != null && !allowedEntityIds.contains(spec.getEntityId())) {
+                continue;
+            }
             Entity e = new EntityBuilder(ChirpstackConstants.INTEGRATION_ID)
                     .identifier(spec.getEntityId())
                     .property(spec.getDisplayName(), AccessMod.R)
@@ -54,13 +66,16 @@ public class ChirpstackDeviceService {
                     .build();
             entities.add(e);
         }
-        Device device = new DeviceBuilder(ChirpstackConstants.INTEGRATION_ID)
+        DeviceBuilder builder = new DeviceBuilder(ChirpstackConstants.INTEGRATION_ID)
                 .name(deviceName != null ? deviceName : devEui)
                 .identifier(devEui)
-                .entities(entities)
-                .build();
+                .entities(entities);
+        if (sensorModel != null && allowedEntityIds != null) {
+            builder = builder.additional(Map.of(ChirpstackConstants.DEVICE_ADDITIONAL_SENSOR_MODEL, sensorModel));
+        }
+        Device device = builder.build();
         deviceServiceProvider.save(device);
-        log.info("ChirpStack add_device: created device name={} devEui={}", device.getName(), devEui);
+        log.info("ChirpStack add_device: created device name={} devEui={} sensorModel={}", device.getName(), devEui, sensorModel);
     }
 
     @EventSubscribe(payloadKeyExpression = ChirpstackConstants.INTEGRATION_ID + ".integration.delete_device", eventType = ExchangeEvent.EventType.CALL_SERVICE)
