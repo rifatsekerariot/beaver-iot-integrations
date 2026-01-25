@@ -82,21 +82,36 @@ public class ChirpstackWebhookService {
         }
         log.debug("ChirpStack uplink: devEui={}, fPort={}, rssi={}, snr={}", devEui, fPort, rssi, snr);
 
+        // Collect all entity values to save (from decoded payload + rxInfo)
+        Map<String, Object> toSave = new HashMap<>();
+        
+        // Parse decoded payload (sensor data)
         JsonNode decoded = evt.getObject();
         if (decoded == null && evt.getData() != null && !evt.getData().isBlank()) {
             decoded = tryDecodeDataAsJson(evt.getData());
         }
         if (decoded != null && decoded.isObject()) {
-            Map<String, Object> toSave = mapSensorPayloadToEntityValues(decoded);
-            if (!toSave.isEmpty()) {
-                String deviceKey = device.getKey();
-                Map<String, Object> payload = new HashMap<>();
-                for (Map.Entry<String, Object> e : toSave.entrySet()) {
-                    payload.put(deviceKey + "." + e.getKey(), e.getValue());
-                }
-                entityValueServiceProvider.saveValuesAndPublishAsync(ExchangePayload.create(payload));
-                log.debug("ChirpStack uplink: saved sensor values devEui={} keys={}", devEui, toSave.keySet());
+            Map<String, Object> sensorValues = mapSensorPayloadToEntityValues(decoded);
+            toSave.putAll(sensorValues);
+        }
+        
+        // Add RSSI and SNR from rxInfo (if available)
+        if (rssi != null) {
+            toSave.put("rssi", rssi.doubleValue());
+        }
+        if (snr != null) {
+            toSave.put("snr", snr);
+        }
+        
+        // Save all entity values
+        if (!toSave.isEmpty()) {
+            String deviceKey = device.getKey();
+            Map<String, Object> payload = new HashMap<>();
+            for (Map.Entry<String, Object> e : toSave.entrySet()) {
+                payload.put(deviceKey + "." + e.getKey(), e.getValue());
             }
+            entityValueServiceProvider.saveValuesAndPublishAsync(ExchangePayload.create(payload));
+            log.debug("ChirpStack uplink: saved entity values devEui={} keys={}", devEui, toSave.keySet());
         }
     }
 
