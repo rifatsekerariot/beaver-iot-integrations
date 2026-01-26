@@ -47,3 +47,11 @@ Düzeltmeler **beaver-iot-web** içinde. Sunucuya yansıması için:
 - Dashboard listesi doğru parse ediliyor.
 - Dropdown dashboard’larla doluyor, seçim kaydediliyor.
 - "Please select a dashboard." hatası bu kök nedenle ortadan kalkmış olmalı.
+
+---
+
+## Ek: GET /dashboard/:id 500 → getDrawingBoardDetail (2026-01-26)
+
+**Sorun:** `GET /api/v1/dashboard/1` 500. Backend GET /dashboard/:id desteklemiyor.
+
+**Çözüm:** getDashboardDetail yerine getDrawingBoardDetail(main_canvas_id). GET /canvas/:id 200 dönüyor. entity_ids canvas response'tan alınıyor; PDF akışı aynı.
