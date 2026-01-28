@@ -2,6 +2,9 @@
 # Prereq: Docker, Postgres stack (chirpstack-prebuilt-postgres), BEAVER_IMAGE with alarm-service + t_alarm.
 # Usage: .\scripts\run-alarm-api-tests.ps1  or .\scripts\run-alarm-api-tests.ps1 -QuickCheck
 #   -QuickCheck: only 401 on /alarms/search and 200 on /alarm, / (no login). Set $env:BEAVER_EXAMPLES_DIR for compose path.
+#
+# API base: $Base/api/v1 (e.g. http://localhost:9080/api/v1). Alarms: /alarms/search, /alarms/export, /alarms/claim.
+# NoResourceFoundException "No static resource alarms/search" => AlarmsController not in JAR or path/nginx mismatch; see NO_RESOURCE_ALARMS_SEARCH_FIX.md.
 
 param([switch]$QuickCheck)
 
